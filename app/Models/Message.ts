@@ -2,6 +2,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 
 import Channel from './Channel'
 import { DateTime } from 'luxon'
+import User from './User'
 
 export default class Message extends BaseModel {
   @column({ isPrimary: true })
@@ -26,4 +27,9 @@ export default class Message extends BaseModel {
     foreignKey: 'channelId',
   })
   public channel: BelongsTo<typeof Channel>
+
+  @belongsTo(() => User, {
+    foreignKey: 'createdBy',
+  })
+  public author: BelongsTo<typeof User>
 }
