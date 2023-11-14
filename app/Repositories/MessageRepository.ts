@@ -6,9 +6,9 @@ import type {
 import Channel from 'App/Models/Channel'
 
 export default class MessageRepository implements MessageRepositoryContract {
-  public async getAll(channelName: string): Promise<SerializedMessage[]> {
+  public async getAll(channelId: number): Promise<SerializedMessage[]> {
     const channel = await Channel.query()
-      .where('name', channelName)
+      .where('id', channelId)
       .preload('messages', (messagesQuery) => messagesQuery.preload('author'))
       .firstOrFail()
 
@@ -16,11 +16,11 @@ export default class MessageRepository implements MessageRepositoryContract {
   }
 
   public async create(
-    channelName: string,
+    channelId: number,
     userId: number,
     content: string
   ): Promise<SerializedMessage> {
-    const channel = await Channel.findByOrFail('name', channelName)
+    const channel = await Channel.findByOrFail('id', channelId)
     const message = await channel.related('messages').create({ createdBy: userId, content })
     await message.load('author')
 

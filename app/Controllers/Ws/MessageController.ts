@@ -13,11 +13,11 @@ export default class MessageController {
   constructor(private messageRepository: MessageRepositoryContract) {}
 
   public async loadMessages({ params }: WsContextContract) {
-    return this.messageRepository.getAll(params.name)
+    return this.messageRepository.getAll(params.id)
   }
 
   public async addMessage({ params, socket, auth }: WsContextContract, content: string) {
-    const message = await this.messageRepository.create(params.name, auth.user!.id, content)
+    const message = await this.messageRepository.create(params.id, auth.user!.id, content)
     // broadcast message to other users in channel
     socket.broadcast.emit('message', message)
     // return message to sender
