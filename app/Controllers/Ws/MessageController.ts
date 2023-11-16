@@ -12,12 +12,24 @@ import { inject } from '@adonisjs/core/build/standalone'
 export default class MessageController {
   constructor(private messageRepository: MessageRepositoryContract) {}
 
+  public async onConnect({ socket }: WsContextContract) {
+    console.log('pripojil sa gadzo pod id: ' + socket.id)
+  }
+
+  public async joinRooms({ socket }: WsContextContract, channels: string[]) {
+    channels.forEach((channelId) => socket.join(channelId))
+  }
+
+  public async leaveRoom({ socket }: WsContextContract, channel: string) {
+    socket.join(channel)
+  }
+
   public async loadMessages({ params }: WsContextContract) {
     return this.messageRepository.getAll(params.id)
   }
 
-  public async addMessage({ params, socket, auth }: WsContextContract, content: string) {
-    const message = await this.messageRepository.create(params.id, auth.user!.id, content)
+  public async addMessage({ params, socket, auth }: WsContextContract, payload: string) {
+    const message = await this.messageRepository.create(params.id, auth.user!.id, payload)
     // broadcast message to other users in channel
     socket.broadcast.emit('message', message)
     // return message to sender

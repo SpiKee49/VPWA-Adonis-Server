@@ -9,11 +9,11 @@
 
 import Ws from '@ioc:Ruby184/Socket.IO/Ws'
 // this is dynamic namespace, in controller methods we can use params.name
-Ws.io.on('connection', (socket) => {
-  console.log('connected by id: ' + socket.id)
-})
 
-Ws.namespace('channels/:id')
-  // .middleware('channel') // check if user can join given channel
+Ws.namespace('/channels')
+  .connected('MessageController.onConnect')
+  .on('joinRooms', 'MessageContreller.joinRooms')
+  .on('leaveRoom', 'MessageContreller.leaveRoom')
+  .on('sendingPayload', 'MessageController.sendPayload')
   .on('loadMessages', 'MessageController.loadMessages')
   .on('addMessage', 'MessageController.addMessage')
