@@ -17,7 +17,11 @@ declare module '@ioc:Repositories/MessageRepository' {
   }
 
   export interface MessageRepositoryContract {
-    create(channelId: number, userId: number, content: string): Promise<void>
+    create(
+      channelId: number,
+      userId: number,
+      content: string
+    ): Promise<SerializedMessage | undefined>
   }
 
   const MessageRepository: MessageRepositoryContract
