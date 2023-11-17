@@ -27,6 +27,9 @@ Route.get('/', async () => {
 Route.group(() => {
   Route.post(':id/messages', 'ChannelsController.loadMessages')
   Route.post('new', 'ChannelsController.createChannel').middleware('auth')
+  Route.post('invite', 'ChannelsController.inviteToChannel').middleware('auth')
+  Route.post(':id/leave', 'ChannelsController.leaveChannel')
+  Route.post(':id/join', 'ChannelsController.joinChannel')
 }).prefix('channels')
 
 Route.group(() => {
