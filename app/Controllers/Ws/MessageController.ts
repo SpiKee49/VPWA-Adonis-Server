@@ -13,12 +13,11 @@ export default class MessageController {
   constructor(private messageRepository: MessageRepositoryContract) {}
 
   public async onConnect({ socket }: WsContextContract) {
-    console.log('pripojil sa gadzo pod id: ' + socket.id)
+    console.log('pripojil sa pouzivatel pod id: ' + socket.id)
   }
 
   public async joinRooms({ socket }: WsContextContract, channels: string[]) {
     channels.forEach((channelId) => socket.join(channelId))
-    console.log(socket.rooms)
   }
 
   public async leaveRoom({ socket }: WsContextContract, channel: string) {
@@ -29,7 +28,6 @@ export default class MessageController {
     { socket, auth }: WsContextContract,
     payload: { channelId: number; message: string }
   ) {
-    console.log(payload)
     const message = await this.messageRepository.create(
       payload.channelId,
       auth.user!.id,
@@ -37,7 +35,6 @@ export default class MessageController {
     )
     // broadcast message to all users in channel including sender
     const channel = payload.channelId.toString()
-    console.log(channel)
     socket.in(channel).emit('newMessage', { channelId: payload.channelId, message })
   }
 }

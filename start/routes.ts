@@ -25,7 +25,8 @@ Route.get('/', async () => {
 })
 
 Route.group(() => {
-  Route.get(':id/messages', 'ChannelsController.loadMessages')
+  Route.post(':id/messages', 'ChannelsController.loadMessages')
+  Route.post('new', 'ChannelsController.createChannel').middleware('auth')
 }).prefix('channels')
 
 Route.group(() => {
