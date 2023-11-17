@@ -12,8 +12,8 @@ import Ws from '@ioc:Ruby184/Socket.IO/Ws'
 
 Ws.namespace('/channels')
   .connected('MessageController.onConnect')
-  .on('joinRooms', 'MessageContreller.joinRooms')
-  .on('leaveRoom', 'MessageContreller.leaveRoom')
+  .on('joinRooms', 'MessageController.joinRooms')
+  .on('leaveRoom', 'MessageController.leaveRoom')
   .on('sendingPayload', 'MessageController.sendPayload')
   .on('loadMessages', 'MessageController.loadMessages')
   .on('addMessage', 'MessageController.addMessage')

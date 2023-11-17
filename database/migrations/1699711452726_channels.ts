@@ -7,6 +7,14 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.string('name').notNullable().unique()
+      table
+        .integer('created_by')
+        .unsigned()
+        .references('id')
+        .inTable('users')
+        .onDelete('CASCADE')
+        .nullable()
+      table.boolean('is_private')
 
       /**
        * Uses timestamptz for PostgreSQL and DATETIME2 for MSSQL
