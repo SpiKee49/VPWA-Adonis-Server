@@ -16,6 +16,15 @@ export default class ChannelsController {
     return messages.map((msg) => msg.serialize() as SerializedMessage)
   }
 
+  async loadMembers({ request, auth }: HttpContextContract) {
+    const members = await User.query()
+      .whereNot('id', auth.user!.id)
+      .preload('channels', (ChannelQuery) => {
+        ChannelQuery.where('channel_id', request.params().id)
+      })
+    return members
+  }
+
   async createChannel({ request, auth }: HttpContextContract) {
     const body = request.body() as { name: string; isPrivate: boolean }
 
@@ -30,13 +39,13 @@ export default class ChannelsController {
   }
 
   async inviteToChannel({ request }: HttpContextContract) {
-    const body = request.body() as { userId: number; channelId }
+    const body = request.body() as { userId: number }
 
     const user = await User.findBy('id', body.userId)
 
     if (user == null) return new Error('User not found in DB based on id')
 
-    await user?.related('channels').attach([body.channelId])
+    await user?.related('channels').attach([request.params().id])
   }
 
   async joinChannel({ request, auth }: HttpContextContract) {
