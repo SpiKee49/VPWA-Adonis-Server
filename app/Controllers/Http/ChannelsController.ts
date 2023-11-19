@@ -14,8 +14,6 @@ export default class ChannelsController {
       channelsIds.forEach((channel) => qb.whereNot('id', channel))
     )
 
-    //optional search queries
-    console.log(request.qs())
     if (request.qs().search && request.qs().search !== '')
       publicChannels.where('name', 'like', `%${request.qs().search}%`)
 
@@ -58,7 +56,7 @@ export default class ChannelsController {
   async deleteChannel({ request, auth }: HttpContextContract) {
     const channelId = request.params().id
 
-    const channel = await Channel.query()
+    await Channel.query()
       .where('id', channelId)
       .andWhere('created_by', auth.user!.id)
       .delete()
