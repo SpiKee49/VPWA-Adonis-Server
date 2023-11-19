@@ -31,6 +31,7 @@ Route.group(() => {
   Route.post(':id/leave', 'ChannelsController.leaveChannel').middleware('auth')
   Route.post(':id/join', 'ChannelsController.joinChannel').middleware('auth')
   Route.get(':id/members', 'ChannelsController.loadMembers').middleware('auth')
+  Route.get('joinable', 'ChannelsController.loadPublicChannels').middleware('auth')
 }).prefix('channels')
 
 Route.group(() => {
