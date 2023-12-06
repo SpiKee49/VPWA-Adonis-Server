@@ -1,4 +1,6 @@
+import Channel from 'App/Models/Channel'
 import type { MessageRepositoryContract } from '@ioc:Repositories/MessageRepository'
+import User from 'App/Models/User'
 import type { WsContextContract } from '@ioc:Ruby184/Socket.IO/WsContext'
 import { inject } from '@adonisjs/core/build/standalone'
 
@@ -12,12 +14,14 @@ import { inject } from '@adonisjs/core/build/standalone'
 export default class MessageController {
   constructor(private messageRepository: MessageRepositoryContract) {}
 
-  public async onConnect({ socket }: WsContextContract) {
+  public async onConnect({ socket, auth }: WsContextContract) {
+    socket.join(`user-${auth.user!.userName}`)
     console.log('pripojil sa pouzivatel pod id: ' + socket.id)
   }
 
   public async joinRooms({ socket }: WsContextContract, channels: string[]) {
     channels.forEach((channelId) => socket.join(channelId))
+    console.log(socket.rooms)
   }
 
   public async leaveRoom({ socket }: WsContextContract, channel: string) {
@@ -37,5 +41,19 @@ export default class MessageController {
     // broadcast message to all users in channel including sender
     const channel = payload.channelId.toString()
     socket.in(channel).emit('newMessage', { channelId: payload.channelId, message })
+  }
+
+  async inviteToChannel({ socket }: WsContextContract, invitedUserId: number) {
+    const user = await User.findBy('id', invitedUserId)
+
+    if (user == null) return
+
+    socket.to(`user-${user.userName}`).emit('newChannelInvite')
+  }
+
+  public async deleteChannel({ socket, auth }: WsContextContract, channelId: number) {
+    await Channel.query().where('id', channelId).andWhere('created_by', auth.user!.id).delete()
+
+    socket.to(channelId.toString()).emit('channelDeleted', channelId)
   }
 }

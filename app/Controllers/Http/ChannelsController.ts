@@ -11,7 +11,7 @@ export default class ChannelsController {
     const channelsIds = user?.channels.map((channel) => channel.id) ?? []
 
     let publicChannels = Channel.query().where((qb) =>
-      channelsIds.forEach((channel) => qb.whereNot('id', channel))
+      channelsIds.forEach((channel) => qb.whereNot('id', channel).andWhere('is_private', false))
     )
 
     if (request.qs().search && request.qs().search !== '')
@@ -40,10 +40,22 @@ export default class ChannelsController {
     return channel.members.filter((user) => user.id !== auth.user!.id)
   }
 
+  async inviteToChannel({ request }: HttpContextContract) {
+    const channelId = request.params().id
+    const inviteUserName = request.body().inviteUserName
+
+    const user = await User.findBy('user_name', inviteUserName)
+
+    if (user == null) return new Error('User not found in DB based on id')
+
+    await user.related('channels').attach([channelId])
+    return
+  }
+
   async createChannel({ request, auth }: HttpContextContract) {
     const body = request.body() as { name: string; isPrivate: boolean }
 
-    const channel = await Channel.create({
+    let channel = await Channel.create({
       createdBy: auth.user!.id,
       ...body,
     })
@@ -52,22 +64,6 @@ export default class ChannelsController {
     await channel.load('members')
 
     return channel
-  }
-
-  async deleteChannel({ request, auth }: HttpContextContract) {
-    const channelId = request.params().id
-
-    await Channel.query().where('id', channelId).andWhere('created_by', auth.user!.id).delete()
-  }
-
-  async inviteToChannel({ request }: HttpContextContract) {
-    const body = request.body() as { userId: number }
-
-    const user = await User.findBy('id', body.userId)
-
-    if (user == null) return new Error('User not found in DB based on id')
-
-    return await user.related('channels').attach([request.params().id])
   }
 
   async joinChannel({ request, auth }: HttpContextContract) {
