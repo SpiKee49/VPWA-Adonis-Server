@@ -1,4 +1,4 @@
-import { BaseModel, BelongsTo, HasMany, belongsTo, column, hasMany } from '@ioc:Adonis/Lucid/Orm'
+import { BaseModel, BelongsTo, HasMany, ManyToMany, belongsTo, column, hasMany, manyToMany } from '@ioc:Adonis/Lucid/Orm'
 
 import { DateTime } from 'luxon'
 import Message from './Message'
@@ -27,6 +27,14 @@ export default class Channel extends BaseModel {
     foreignKey: 'channelId',
   })
   public messages: HasMany<typeof Message>
+
+  @manyToMany(() => User, {
+    pivotTable: 'channel_users',
+    pivotForeignKey: 'channel_id',
+    pivotRelatedForeignKey: 'user_id',
+    pivotTimestamps: true,
+  })
+  public members: ManyToMany<typeof User>
 
   @belongsTo(() => User, { foreignKey: 'createdBy' })
   public owner: BelongsTo<typeof User>

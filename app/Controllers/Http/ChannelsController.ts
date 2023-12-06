@@ -32,12 +32,12 @@ export default class ChannelsController {
   }
 
   async loadMembers({ request, auth }: HttpContextContract) {
-    const members = await User.query()
-      .whereNot('id', auth.user!.id)
-      .preload('channels', (ChannelQuery) => {
-        ChannelQuery.where('channel_id', request.params().id)
-      })
-    return members
+    const channelId = request.params().id
+
+    const channel = await Channel.query().where('id', channelId).firstOrFail()
+    await channel.load('members')
+
+    return channel.members.filter((user) => user.id !== auth.user!.id)
   }
 
   async createChannel({ request, auth }: HttpContextContract) {
@@ -49,6 +49,7 @@ export default class ChannelsController {
     })
     await channel.load('owner')
     await auth.user!.related('channels').attach([channel.id])
+    await channel.load('members')
 
     return channel
   }
@@ -56,10 +57,7 @@ export default class ChannelsController {
   async deleteChannel({ request, auth }: HttpContextContract) {
     const channelId = request.params().id
 
-    await Channel.query()
-      .where('id', channelId)
-      .andWhere('created_by', auth.user!.id)
-      .delete()
+    await Channel.query().where('id', channelId).andWhere('created_by', auth.user!.id).delete()
   }
 
   async inviteToChannel({ request }: HttpContextContract) {
