@@ -40,16 +40,18 @@ export default class ChannelsController {
     return channel.members.filter((user) => user.id !== auth.user!.id)
   }
 
-  async inviteToChannel({ request }: HttpContextContract) {
+  async inviteToChannel({ request, response }: HttpContextContract) {
     const channelId = request.params().id
     const inviteUserName = request.body().inviteUserName
 
     const user = await User.findBy('user_name', inviteUserName)
 
-    if (user == null) return new Error('User not found in DB based on id')
+    if (user == null) {
+      return response.status(404).json({ message: 'User not found in database' })
+    }
 
     await user.related('channels').attach([channelId])
-    return
+    return response.status(200)
   }
 
   async createChannel({ request, auth }: HttpContextContract) {

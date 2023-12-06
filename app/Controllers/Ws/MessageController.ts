@@ -10,8 +10,15 @@ import { inject } from '@adonisjs/core/build/standalone'
 // controler method just gets data (validates it) and calls repository
 // also we can then test standalone repository without controller
 // implementation is bind into container inside providers/AppProvider.ts
+
+interface CurrentlyTypingChannels {
+  [channelId: number]: Map<string, string>
+}
+
 @inject(['Repositories/MessageRepository'])
 export default class MessageController {
+  private typingChannels: CurrentlyTypingChannels = {}
+
   constructor(private messageRepository: MessageRepositoryContract) {}
 
   public async onConnect({ socket, auth }: WsContextContract) {
@@ -19,8 +26,44 @@ export default class MessageController {
     console.log('pripojil sa pouzivatel pod id: ' + socket.id)
   }
 
+  public isTyping({ socket, auth }: WsContextContract, channelId: number, message: string) {
+    console.log(channelId, message)
+    if (channelId in this.typingChannels) {
+      if (!this.typingChannels[channelId].has(auth.user!.userName) && message === '') {
+        return
+      }
+
+      if (this.typingChannels[channelId].has(auth.user!.userName) && message === '') {
+        this.typingChannels[channelId].delete(auth.user!.userName)
+      } else {
+        this.typingChannels[channelId].set(auth.user!.userName, message)
+      }
+    } else if (!(channelId in this.typingChannels) && message !== '') {
+      this.typingChannels[channelId] = new Map<string, string>()
+      this.typingChannels[channelId].set(auth.user!.userName, message)
+    }
+    try {
+      socket
+        .to(channelId.toString())
+        .emit(
+          'someIsTyping',
+          channelId,
+          JSON.stringify(Array.from(this.typingChannels[channelId].entries()))
+        )
+    } catch (error) {
+      socket.to(channelId.toString()).emit('someIsTyping', channelId, JSON.stringify([]))
+    }
+  }
+
   public async joinRooms({ socket }: WsContextContract, channels: string[]) {
-    channels.forEach((channelId) => socket.join(channelId))
+    channels.forEach((channelId) => {
+      socket.join(channelId)
+      if (Number(channelId) in this.typingChannels && this.typingChannels[channelId].size > 0) {
+        socket
+          .to(socket.id)
+          .emit('typingChannel', Number(channelId), this.typingChannels[channelId])
+      }
+    })
     console.log(socket.rooms)
   }
 
@@ -43,17 +86,27 @@ export default class MessageController {
     socket.in(channel).emit('newMessage', { channelId: payload.channelId, message })
   }
 
-  async inviteToChannel({ socket }: WsContextContract, invitedUserId: number) {
-    const user = await User.findBy('id', invitedUserId)
+  userLeftChannel({ socket }: WsContextContract, channelId: number) {
+    socket.to(channelId.toString()).emit('updateMembers', channelId)
+  }
 
-    if (user == null) return
+  public async inviteToChannel(
+    { socket }: WsContextContract,
+    inviteUserName: string,
+    channelId: number
+  ) {
+    const user = await User.findBy('userName', inviteUserName)
+    if (user == null) {
+      console.log('user not found')
+      return
+    }
 
-    socket.to(`user-${user.userName}`).emit('newChannelInvite')
+    socket.to(`user-${user.userName}`).emit('newChannelInvite', channelId)
   }
 
   public async deleteChannel({ socket, auth }: WsContextContract, channelId: number) {
     await Channel.query().where('id', channelId).andWhere('created_by', auth.user!.id).delete()
-
+    console.log('Notifying about channel delete: ' + channelId)
     socket.to(channelId.toString()).emit('channelDeleted', channelId)
   }
 }
