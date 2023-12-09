@@ -30,6 +30,8 @@ Route.group(() => {
   Route.post(':id/invite', 'ChannelsController.inviteToChannel').middleware('auth')
   Route.get(':id/leave', 'ChannelsController.leaveChannel').middleware('auth')
   Route.post(':id/join', 'ChannelsController.joinChannel').middleware('auth')
+  Route.put(':id/kick', 'ChannelsController.kickMember').middleware('auth')
+  Route.put(':id/ban', 'ChannelsController.banMember').middleware('auth')
   Route.get(':id/members', 'ChannelsController.loadMembers').middleware('auth')
   Route.get('joinable', 'ChannelsController.loadPublicChannels').middleware('auth')
 }).prefix('channels')

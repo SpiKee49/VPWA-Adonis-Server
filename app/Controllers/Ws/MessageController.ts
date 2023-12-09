@@ -23,11 +23,10 @@ export default class MessageController {
 
   public async onConnect({ socket, auth }: WsContextContract) {
     socket.join(`user-${auth.user!.userName}`)
-    console.log('pripojil sa pouzivatel pod id: ' + socket.id)
+    // console.log('pripojil sa pouzivatel pod id: ' + socket.id)
   }
 
   public isTyping({ socket, auth }: WsContextContract, channelId: number, message: string) {
-    console.log(channelId, message)
     if (channelId in this.typingChannels) {
       if (!this.typingChannels[channelId].has(auth.user!.userName) && message === '') {
         return
@@ -55,16 +54,19 @@ export default class MessageController {
     }
   }
 
-  public async joinRooms({ socket }: WsContextContract, channels: string[]) {
-    channels.forEach((channelId) => {
-      socket.join(channelId)
-      if (Number(channelId) in this.typingChannels && this.typingChannels[channelId].size > 0) {
-        socket
-          .to(socket.id)
-          .emit('typingChannel', Number(channelId), this.typingChannels[channelId])
-      }
+  public async updateStatus({ socket, auth }: WsContextContract, status: 1 | 2 | 3) {
+    auth.user!.status = status
+    await auth.user!.save()
+
+    socket.broadcast.emit('statusChanged', auth.user!.id)
+  }
+
+  public async joinRooms({ socket, auth }: WsContextContract) {
+    await auth.user!.load('channels')
+
+    auth.user!.channels.forEach((channel) => {
+      socket.join(channel.id.toString())
     })
-    console.log(socket.rooms)
   }
 
   public async leaveRoom({ socket }: WsContextContract, channel: string) {
@@ -86,8 +88,9 @@ export default class MessageController {
     socket.in(channel).emit('newMessage', { channelId: payload.channelId, message })
   }
 
-  userLeftChannel({ socket }: WsContextContract, channelId: number) {
+  userLeftChannel({ socket }: WsContextContract, channelId: number, userName: string) {
     socket.to(channelId.toString()).emit('updateMembers', channelId)
+    socket.to(`user-${userName}`).emit('channelDeleted', channelId)
   }
 
   public async inviteToChannel(

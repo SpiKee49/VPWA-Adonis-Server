@@ -1,3 +1,4 @@
+import Ban from 'App/Models/Ban'
 import Channel from 'App/Models/Channel'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Message from 'App/Models/Message'
@@ -31,6 +32,37 @@ export default class ChannelsController {
     return messages.map((msg) => msg.serialize() as SerializedMessage)
   }
 
+  async kickMember({ request, response }: HttpContextContract) {
+    const channelId = request.params().id
+    const user = await User.findBy('id', request.body().userId)
+
+    if (user == null) {
+      return response.status(404).json({ message: 'User not found in database' })
+    }
+
+    await user.related('channels').detach([channelId])
+    return response.status(200)
+  }
+
+  async banMember({ request, auth, response }: HttpContextContract) {
+    const channelId = request.params().id
+    const user = await User.findBy('id', request.body().userId)
+
+    if (user == null) {
+      return response.status(404).json({ message: 'User not found in database' })
+    }
+
+    await user.related('channels').detach([channelId])
+
+    await Ban.create({
+      bannedBy: auth.user!.id,
+      userId: user.id,
+      channelId: channelId,
+    })
+
+    return response.status(200)
+  }
+
   async loadMembers({ request, auth }: HttpContextContract) {
     const channelId = request.params().id
 
@@ -40,7 +72,7 @@ export default class ChannelsController {
     return channel.members.filter((user) => user.id !== auth.user!.id)
   }
 
-  async inviteToChannel({ request, response }: HttpContextContract) {
+  async inviteToChannel({ request, auth, response }: HttpContextContract) {
     const channelId = request.params().id
     const inviteUserName = request.body().inviteUserName
 
@@ -48,6 +80,17 @@ export default class ChannelsController {
 
     if (user == null) {
       return response.status(404).json({ message: 'User not found in database' })
+    }
+
+    //get if banned
+    const ban = await Ban.findBy('user_id', user.id)
+
+    const channel = await Channel.findByOrFail('id', channelId)
+
+    if (ban !== null && !(channel.createdBy === auth.user!.id)) {
+      return response.status(404).json({ message: 'User cannot be invited due to ban in channel' })
+    } else if (ban !== null && channel.createdBy === auth.user!.id) {
+      await ban.delete()
     }
 
     await user.related('channels').attach([channelId])
