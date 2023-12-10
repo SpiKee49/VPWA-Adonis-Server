@@ -68,10 +68,17 @@ export default class MessageController {
       socket.join(channel.id.toString())
     })
   }
+  public async leaveRooms({ socket, auth }: WsContextContract) {
+    await auth.user!.load('channels')
+
+    auth.user!.channels.forEach((channel) => {
+      socket.leave(channel.id.toString())
+    })
+  }
 
   public async leaveRoom({ socket }: WsContextContract, channel: string) {
     socket.leave(channel)
-    console.log(`Socket id: ${socket.id} left room ${channel}`)
+    // console.log(`Socket id: ${socket.id} left room ${channel}`)
   }
 
   public async addMessage(
